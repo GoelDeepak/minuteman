@@ -26,6 +26,7 @@
 
 -include_lib("gen_socket/include/gen_socket.hrl").
 -include_lib("gen_netlink/include/netlink.hrl").
+-include_lib("telemetry/include/telemetry.hrl").
 -include("minuteman.hrl").
 
 -define(NFQNL_COPY_PACKET, 2).
@@ -112,6 +113,8 @@ init([]) ->
   ok = gen_socket:setsockopt(Socket, ?SOL_SOCKET, ?SO_RCVBUF, 57108864),
   ok = gen_socket:setsockopt(Socket, ?SOL_NETLINK, ?NETLINK_ADD_MEMBERSHIP, ?NFNLGRP_CONNTRACK_NEW),
   ok = gen_socket:setsockopt(Socket, ?SOL_NETLINK, ?NETLINK_ADD_MEMBERSHIP, ?NFNLGRP_CONNTRACK_UPDATE),
+  % using a lambda to avoid exporting this function since its not called internally
+  ok = telemetry:add_prepare_fun(update_vip_names, fun(M) -> call_update_vip_names(M) end),
   netlink:rcvbufsiz(Socket, ?RCVBUF_DEFAULT),
   ok = gen_socket:input_event(Socket, true),
   {ok, #state{socket = Socket}}.
@@ -131,6 +134,8 @@ init([]) ->
   {noreply, NewState :: #state{}, timeout() | hibernate} |
   {stop, Reason :: term(), Reply :: term(), NewState :: #state{}} |
   {stop, Reason :: term(), NewState :: #state{}}).
+handle_call({update_vip_names, #metrics{}}, _From, State) ->
+  {reply, #metrics{}, State};
 handle_call(_Request, _From, State) ->
   {reply, ok, State}.
 
@@ -248,6 +253,9 @@ handle_conn(Vips, Backends, #ctnetlink{msg = {_Family, _, _, Props}}) ->
   AddressesReply = fmt_net(Reply),
   maybe_mark_replied(Vips, Backends, ID, AddressesReply, Orig, Status).
 
+-spec(call_update_vip_names(#metrics{}) -> #metrics{}).
+call_update_vip_names(#metrics{}) ->
+  gen_server:call(?SERVER, {update_vip_names, #metrics{}}).
 
 maybe_mark_replied(Vips, Backends, ID,
                    {Proto, DstIP, DstPort, _SrcIP, _SrcPort} = AddressesReply,
