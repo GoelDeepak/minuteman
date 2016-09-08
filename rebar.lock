@@ -1,3 +1,4 @@
+{"1.1.0",
 [{<<"base32">>,
   {git,"https://github.com/aetrion/base32_erlang.git",
        {ref,"40431a7480176b24863e18b92d9872e54c714df5"}},
@@ -93,9 +94,13 @@
   0},
  {<<"telemetry">>,
   {git,"git://github.com/dcos/telemetry-net.git",
-       {ref,"36df56693d0bf6589900ec4cc6aaac246fe13f21"}},
+       {ref,"b64c6cf644dada2f3b393bab0e5494337c332af8"}},
   0},
  {<<"webmachine">>,
   {git,"git://github.com/webmachine/webmachine",
        {ref,"5e1ff9213a2a3638eb12be9c84279840d0803414"}},
-  0}].
+  0}]}.
+[
+{pkg_hash,[
+ {<<"mochiweb">>, <<"80804AD342AFA3D7F3524040D4EED66CE74B17A555DE454AC85B07C479928E46">>}]}
+].
