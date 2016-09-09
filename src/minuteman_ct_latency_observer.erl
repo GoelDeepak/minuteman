@@ -346,12 +346,3 @@ fmt_ip_port(IP, Port) ->
   List = io_lib:format("~s_~p", [IPString, Port]),
   list_to_binary(List).
 
--ifdef(TEST).
-prepare_fun_test_() -> {
-  setup,
-  fun() -> application:ensure_all_started(minuteman), ok end,
-  fun(_) -> application:stop(minuteman) end,
-  ?_assertEqual(ok, telemetry:add_prepare_func(update_vip_names, fun update_vip_names/1))
-}.
-
--endif.
