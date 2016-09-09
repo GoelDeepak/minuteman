@@ -345,4 +345,3 @@ fmt_ip_port(IP, Port) ->
   IPString = inet_parse:ntoa(IP),
   List = io_lib:format("~s_~p", [IPString, Port]),
   list_to_binary(List).
-
