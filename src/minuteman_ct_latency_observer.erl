@@ -347,8 +347,11 @@ fmt_ip_port(IP, Port) ->
   list_to_binary(List).
 
 -ifdef(TEST).
-init_test_() -> {setup,
-                 fun() -> application:ensure_all_started(minuteman), ok end,
-                 fun(_) -> application:stop(minuteman) end,
-                 ?_assertMatch({ok,_}, init([]))}.
+prepare_fun_test_() -> {
+  setup,
+  fun() -> application:ensure_all_started(minuteman), ok end,
+  fun(_) -> application:stop(minuteman) end,
+  ?_assertEqual(ok, telemetry:add_prepare_fun(update_vip_names, fun update_vip_names/1))
+}.
+
 -endif.
