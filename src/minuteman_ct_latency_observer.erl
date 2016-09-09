@@ -114,7 +114,7 @@ init([]) ->
   ok = gen_socket:setsockopt(Socket, ?SOL_NETLINK, ?NETLINK_ADD_MEMBERSHIP, ?NFNLGRP_CONNTRACK_NEW),
   ok = gen_socket:setsockopt(Socket, ?SOL_NETLINK, ?NETLINK_ADD_MEMBERSHIP, ?NFNLGRP_CONNTRACK_UPDATE),
   % using a lambda to avoid exporting this function since its not called internally
-  ok = telemetry:add_prepare_fun(update_vip_names, fun update_vip_names/1),
+  ok = telemetry:add_prepare_func(update_vip_names, fun update_vip_names/1),
   netlink:rcvbufsiz(Socket, ?RCVBUF_DEFAULT),
   ok = gen_socket:input_event(Socket, true),
   {ok, #state{socket = Socket}}.
@@ -351,7 +351,7 @@ prepare_fun_test_() -> {
   setup,
   fun() -> application:ensure_all_started(minuteman), ok end,
   fun(_) -> application:stop(minuteman) end,
-  ?_assertEqual(ok, telemetry:add_prepare_fun(update_vip_names, fun update_vip_names/1))
+  ?_assertEqual(ok, telemetry:add_prepare_func(update_vip_names, fun update_vip_names/1))
 }.
 
 -endif.
