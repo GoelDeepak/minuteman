@@ -22,6 +22,7 @@
   handle_cast/2,
   handle_info/2,
   terminate/2,
+  update_vip_names/1,
   code_change/3]).
 
 -include_lib("gen_socket/include/gen_socket.hrl").
@@ -134,8 +135,8 @@ init([]) ->
   {noreply, NewState :: #state{}, timeout() | hibernate} |
   {stop, Reason :: term(), Reply :: term(), NewState :: #state{}} |
   {stop, Reason :: term(), NewState :: #state{}}).
-handle_call({update_vip_names, #metrics{}}, _From, State) ->
-  {reply, #metrics{}, State};
+handle_call({update_vip_names, M = #metrics{}}, _From, State) ->
+  {reply, M, State};
 handle_call(_Request, _From, State) ->
   {reply, ok, State}.
 
