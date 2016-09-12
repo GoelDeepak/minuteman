@@ -21,46 +21,41 @@ run_test_init(_Config) -> ok.
 test_update_vip_names(_Config) ->
   #metrics{} = minuteman_ct_latency_observer:update_vip_names(#metrics{}).
 
-init_per_testcase(_, Config) ->
-  % BUG, https://github.com/erlang/otp/pull/1095, should be {ok, Node}
-  {error, started_not_connected, Node} = ct_slave:start(minuteman_ct_latency_observer_SUITE_TEST, []),
-  ct:pal("ct_slave:start passed"),
-  ok = rpc:call(Node, code, add_pathsa, [code:get_path()]),
-  {ok, Config1} = rpc:call(Node, minuteman_ct_latency_observer_SUITE, init_node, [Config]),
-  ct:pal("rpc call passed ~p", [Config1]),
-  [{node, Node} | Config1].
-
-end_per_testcase(Config) ->
-  Node = ?config(node, Config),
-  ok = rpc:call(Node, minuteman_ct_latency_observer_SUITE, end_node, [Config]),
-  ct_slave:stop(Node),
-  wait_for_death(Node).
-
 init_node(Config) ->
-  %mock_iptables_start(),
   application:ensure_all_started(minuteman),
   {ok, Config}.
 
 end_node(_Config) ->
   application:stop(minuteman),
-  %mock_iptables_stop(),
-  exit(ok).
+	ok.
 
-%mock_iptables_start() ->
-%  meck:new(iptables, [passthrough, no_link]),
-%  meck:expect(iptables, check, fun(_Table, _Chain, _Rule) ->
-%    {ok,[]}
-%  end),
-%  meck:expect(iptables, insert, fun(_Table, _Chain, _Rule) ->
-%    {ok,[]}
-%  end).
+exit_node() -> exit(ok).
 
-%mock_iptables_stop() -> meck:unload(iptables).
+kill_node(Node) -> kill_node(Node, net_adm:ping(Node)).
+kill_node(Node, pong) ->
+	exit(whereis(Node), ok),
+	kill_node(Node);
+kill_node(_, _) -> ok.
+
+init_per_testcase(_, Config) ->
+  {ok, Node} = ct_slave:start(minuteman_ct_latency_observer_SUITE_TEST, [{monitor_master, true}]),
+  ct:pal("ct_slave:start returned ~p", [Node]),
+  ok = rpc:call(Node, code, add_pathsa, [code:get_path()]),
+  {ok, Config1} = rpc:call(Node, minuteman_ct_latency_observer_SUITE, init_node, [Config]),
+  ct:pal("rpc call passed ~p", [Config1]),
+  [{node, Node} | Config1].
+
+end_per_testcase(_, Config) ->
+  Node = ?config(node, Config),
+  rpc:call(Node, minuteman_ct_latency_observer_SUITE, end_node, [Config]),
+  ct_slave:stop(Node),
+	Pid = whereis(Node),
+  unlink(Pid),
+  exit(Pid, shutdown),
+  wait_for_death(Pid).
 
 wait_for_death(Pid) -> wait_for_death(Pid, is_process_alive(Pid)).
-
 wait_for_death(Pid, true) ->
-  timer:sleep(10),
-  wait_for_death(Pid);
+	timer:sleep(10),
+	wait_for_death(Pid);
 wait_for_death(_, false) -> ok.
-
