@@ -1,7 +1,9 @@
 -module(minuteman_ct_latency_observer_SUITE).
+-compile(export_all).
+-export([init_node/1]).
+
 -include_lib("common_test/include/ct.hrl").
 -include_lib("telemetry/include/telemetry.hrl").
--compile(export_all).
 
 all() ->
   [test_init
@@ -9,35 +11,35 @@ all() ->
   ].
 
 test_init(Config) ->
-  Pid = ?config(pid, Config),
-  ok = rpc:call(Pid, minuteman_ct_latency_observer_SUITE, run_test_init, [Config]).
+  Node = ?config(node, Config),
+  ct:pal("test_init: got Node "),
+  ok = rpc:call(Node, minuteman_ct_latency_observer_SUITE, run_test_init, [Config]),
+  ct:pal("test_init: rpc call passed").
 run_test_init(_Config) -> ok.
 
 test_update_vip_names(_Config) ->
   #metrics{} = minuteman_ct_latency_observer:update_vip_names(#metrics{}).
 
 init_per_testcase(_, Config) ->
-  ErlFlags = "-pa ../../_build/default/lib/*/ebin " ++ 
-             "-config ../../test/dist_test.config",
-  {ok, Pid} = ct_slave:start(minuteman_ct_latency_observer_SUITE, [{kill_if_fail, true}, 
-                                                                   {monitor_master, true}, 
-                                                                   {init_timeout, 3000},
-                                                                   {startup_timeout, 3000},
-                                                                   {erl_flags, ErlFlags},
-                                                                   {startup_functions, [{minuteman_ct_latency_observer_SUITE, init_node, []}]}]),
-  Config1 = rpc:call(Pid, minuteman_ct_latency_observer_SUITE, init_node, [Config]),
-  [{pid, Pid} | Config1].
+  % BUG, https://github.com/erlang/otp/pull/1095
+  {error, started_not_connected, Node} = ct_slave:start(minuteman_ct_latency_observer_SUITE_TEST, []),
+  ct:pal("ct_slave:start passed"),
+  ok = rpc:call(Node, code, add_pathsa, [code:get_path()]),
+  {ok, Config1} = rpc:call(Node, minuteman_ct_latency_observer_SUITE, init_node, [Config]),
+  ct:pal("rpc call passed ~p", [Config1]),
+  [{node, Node} | Config1].
 
 end_per_testcase(Config) ->
-  Pid = ?config(pid, Config),
-  ok = rpc:call(Pid, minuteman_ct_latency_observer_SUITE, end_node, []),
-  ct_slave:stop(Pid).
+  Node = ?config(node, Config),
+  ok = rpc:call(Node, minuteman_ct_latency_observer_SUITE, end_node, [Config]),
+  ct_slave:stop(Node).
 
-init_node() ->
+init_node(Config) ->
   mock_iptables_start(),
-  application:ensure_all_started(minuteman).
+  application:ensure_all_started(minuteman),
+  {ok, Config}.
 
-end_node() ->
+end_node(_Config) ->
   application:stop(minuteman),
   mock_iptables_stop(),
   ok.
