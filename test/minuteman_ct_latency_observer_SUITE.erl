@@ -4,22 +4,45 @@
 -compile(export_all).
 
 all() ->
-      [test_init,
-       test_update_vip_names].
+  [test_init
+%  ,test_update_vip_names
+  ].
+
+test_init(Config) ->
+  Pid = ?config(pid, Config),
+  ok = rpc:call(Pid, minuteman_ct_latency_observer_SUITE, run_test_init, [Config]).
+run_test_init(_Config) -> ok.
+
+test_update_vip_names(_Config) ->
+  #metrics{} = minuteman_ct_latency_observer:update_vip_names(#metrics{}).
 
 init_per_testcase(_, Config) ->
+  Pid = rpc:pmap({ct_slave, start}, [], minuteman_ct_latency_observer_SUITE),
+  Config1 = rpc:call(Pid, minuteman_ct_latency_observer_SUITE, init_node, [Config]),
+  [{pid, Pid} | Config1].
+
+end_per_testcase(Config) ->
+  Pid = ?config(pid, Config),
+  ok = rpc:call(Pid, minuteman_ct_latency_observer_SUITE, end_node, [Config]),
+  unlink(Pid),
+  exit(Pid, shutdown),
+  wait_for_death(Pid).
+
+wait_for_death(Pid) -> wait_for_death(Pid, is_process_alive(Pid)).
+wait_for_death(Pid, true) ->
+  timer:sleep(10),
+  wait_for_death(Pid);
+wait_for_death(_Pid, false) -> ok.
+
+init_node(Config) ->
   mock_iptables_start(),
   application:ensure_all_started(minuteman),
   Config.
 
-end_per_testcase(_, _Config) ->
+end_node(_Config) ->
   application:stop(minuteman),
-  mock_iptables_stop().
-
-test_init(_Config) -> ok.
-
-test_update_vip_names(_Config) ->
-  #metrics{} = minuteman_ct_latency_observer:update_vip_names(#metrics{}).
+  mock_iptables_stop(),
+  ok.
 
 mock_iptables_start() ->
   meck:new(iptables, [passthrough, no_link]),
