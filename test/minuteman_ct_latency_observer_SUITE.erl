@@ -17,21 +17,27 @@ test_update_vip_names(_Config) ->
   #metrics{} = minuteman_ct_latency_observer:update_vip_names(#metrics{}).
 
 init_per_testcase(_, Config) ->
-  {ok, Pid} = ct_slave:start(minuteman_ct_latency_observer_SUITE),
+  ErlFlags = "-pa ../../_build/default/lib/*/ebin " ++ 
+             "-config ../../test/dist_test.config",
+  {ok, Pid} = ct_slave:start(minuteman_ct_latency_observer_SUITE, [{kill_if_fail, true}, 
+                                                                   {monitor_master, true}, 
+                                                                   {init_timeout, 3000},
+                                                                   {startup_timeout, 3000},
+                                                                   {erl_flags, ErlFlags},
+                                                                   {startup_functions, [{minuteman_ct_latency_observer_SUITE, init_node, []}]}]),
   Config1 = rpc:call(Pid, minuteman_ct_latency_observer_SUITE, init_node, [Config]),
   [{pid, Pid} | Config1].
 
 end_per_testcase(Config) ->
   Pid = ?config(pid, Config),
-  ok = rpc:call(Pid, minuteman_ct_latency_observer_SUITE, end_node, [Config]),
+  ok = rpc:call(Pid, minuteman_ct_latency_observer_SUITE, end_node, []),
   ct_slave:stop(Pid).
 
-init_node(Config) ->
+init_node() ->
   mock_iptables_start(),
-  application:ensure_all_started(minuteman),
-  Config.
+  application:ensure_all_started(minuteman).
 
-end_node(_Config) ->
+end_node() ->
   application:stop(minuteman),
   mock_iptables_stop(),
   ok.
