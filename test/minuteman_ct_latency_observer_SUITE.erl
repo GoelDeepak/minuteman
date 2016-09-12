@@ -7,6 +7,7 @@
 
 all() ->
   [test_init
+  ,test_init
 %  ,test_update_vip_names
   ].
 
@@ -21,7 +22,7 @@ test_update_vip_names(_Config) ->
   #metrics{} = minuteman_ct_latency_observer:update_vip_names(#metrics{}).
 
 init_per_testcase(_, Config) ->
-  % BUG, https://github.com/erlang/otp/pull/1095
+  % BUG, https://github.com/erlang/otp/pull/1095, should be {ok, Node}
   {error, started_not_connected, Node} = ct_slave:start(minuteman_ct_latency_observer_SUITE_TEST, []),
   ct:pal("ct_slave:start passed"),
   ok = rpc:call(Node, code, add_pathsa, [code:get_path()]),
@@ -32,25 +33,34 @@ init_per_testcase(_, Config) ->
 end_per_testcase(Config) ->
   Node = ?config(node, Config),
   ok = rpc:call(Node, minuteman_ct_latency_observer_SUITE, end_node, [Config]),
-  ct_slave:stop(Node).
+  ct_slave:stop(Node),
+  wait_for_death(Node).
 
 init_node(Config) ->
-  mock_iptables_start(),
+  %mock_iptables_start(),
   application:ensure_all_started(minuteman),
   {ok, Config}.
 
 end_node(_Config) ->
   application:stop(minuteman),
-  mock_iptables_stop(),
-  ok.
+  %mock_iptables_stop(),
+  exit(ok).
 
-mock_iptables_start() ->
-  meck:new(iptables, [passthrough, no_link]),
-  meck:expect(iptables, check, fun(_Table, _Chain, _Rule) ->
-    {ok,[]}
-  end),
-  meck:expect(iptables, insert, fun(_Table, _Chain, _Rule) ->
-    {ok,[]}
-  end).
+%mock_iptables_start() ->
+%  meck:new(iptables, [passthrough, no_link]),
+%  meck:expect(iptables, check, fun(_Table, _Chain, _Rule) ->
+%    {ok,[]}
+%  end),
+%  meck:expect(iptables, insert, fun(_Table, _Chain, _Rule) ->
+%    {ok,[]}
+%  end).
 
-mock_iptables_stop() -> meck:unload(iptables).
+%mock_iptables_stop() -> meck:unload(iptables).
+
+wait_for_death(Pid) -> wait_for_death(Pid, is_process_alive(Pid)).
+
+wait_for_death(Pid, true) ->
+  timer:sleep(10),
+  wait_for_death(Pid);
+wait_for_death(_, false) -> ok.
+
