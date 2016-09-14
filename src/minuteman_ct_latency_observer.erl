@@ -135,7 +135,7 @@ init([]) ->
   {noreply, NewState :: #state{}, timeout() | hibernate} |
   {stop, Reason :: term(), Reply :: term(), NewState :: #state{}} |
   {stop, Reason :: term(), NewState :: #state{}}).
-handle_call({update_vip_names, M = #metrics{}}, _From, State) ->
+handle_call({update_vip_names, M}, _From, State) ->
   {reply, M, State};
 handle_call(_Request, _From, State) ->
   {reply, ok, State}.
@@ -255,8 +255,8 @@ handle_conn(Vips, Backends, #ctnetlink{msg = {_Family, _, _, Props}}) ->
   maybe_mark_replied(Vips, Backends, ID, AddressesReply, Orig, Status).
 
 -spec(update_vip_names(#metrics{}) -> #metrics{}).
-update_vip_names(#metrics{}) ->
-  gen_server:call(?SERVER, {update_vip_names, #metrics{}}).
+update_vip_names(M) ->
+  gen_server:call(?SERVER, {update_vip_names, M}).
 
 maybe_mark_replied(Vips, Backends, ID,
                    {Proto, DstIP, DstPort, _SrcIP, _SrcPort} = AddressesReply,
