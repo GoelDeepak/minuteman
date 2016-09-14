@@ -5,15 +5,22 @@
 -include_lib("telemetry/include/telemetry.hrl").
 
 all() ->
-  [run_test_init
-  ,run_test_update_vip_names
+  [test_init
+  ,test_update_vip_names1
+  ,test_update_vip_names2
   ].
 
-run_test_init(_Config) -> ok.
+test_init(_Config) -> ok.
 
-run_test_update_vip_names(_Config) ->
+test_update_vip_names1(_Config) ->
   #metrics{} = minuteman_ct_latency_observer:update_vip_names(#metrics{}),
   ok.
+
+test_update_vip_names2(_Config) ->
+  T = sets:from_list([1,2,3]),
+  #metrics{dirty_histos = T} = minuteman_ct_latency_observer:update_vip_names(#metrics{dirty_histos = T}),
+  ok.
+
 
 init_per_testcase(_, Config) ->
   {ok, _} = application:ensure_all_started(minuteman),
