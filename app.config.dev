@@ -2,7 +2,7 @@
   {minuteman,
     [
       {master_uri, "http://127.0.0.1:5050/state.json"},
-      {enable_networking, true}
+      {enable_networking, false}
     ]
   },
   {lager,
