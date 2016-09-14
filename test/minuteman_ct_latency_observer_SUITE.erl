@@ -27,8 +27,4 @@ init_per_testcase(_, Config) ->
   Config.
 
 end_per_testcase(_, _Config) -> 
-  %% this is a workaround a hack in minuteman_config:queue, which picks that queue value randomly
-  Queue = application:get_env(minuteman, queue, 50),
-  ct:pal("queue ~p", [Queue]),
-  application:set_env(minuteman, queue, Queue + 10),
   ok = application:stop(minuteman).
