@@ -9,7 +9,7 @@
 
 all() ->
   [test_init
-  %,test_init
+  ,test_init
   %,test_update_vip_names
   ].
 
@@ -31,30 +31,17 @@ run_test_update_vip_names(_Config) ->
 
 
 init_node(Config) ->
-  ok = mock_iptables_start(),
   {ok, _} = application:ensure_all_started(minuteman),
   {ok, Config}.
 
 end_node(_Config) -> 
-  ok = application:stop(minuteman),
-  ok = mock_iptables_stop().
-
-
-mock_iptables_start() ->
-  ok = meck:new(iptables, [passthrough, no_link]),
-  ok =  meck:expect(iptables, check, fun(_Table, _Chain, _Rule) ->
-    {ok,[]}
-  end),
-  ok = meck:expect(iptables, insert, fun(_Table, _Chain, _Rule) ->
-    {ok,[]}
-  end).
-
-mock_iptables_stop() -> meck:unload(iptables).
+  ok = application:stop(minuteman).
 
 
 init_per_testcase(_, Config) ->
   Name = minuteman_ct_latency_observer_SUITE_TEST,
   {ok, Node} = ct_slave:start(Name, [{monitor_master, true}]),
+  ok = rpc:call(Node, application, set_env, [minuteman, enable_networking, false]),
   ct:pal("ct_slave:start returned ~p", [Node]),
   ok = rpc:call(Node, code, add_pathsa, [code:get_path()]),
   {ok, Config1} = rpc:call(Node, minuteman_ct_latency_observer_SUITE, init_node,
