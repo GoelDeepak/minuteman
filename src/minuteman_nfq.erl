@@ -177,10 +177,11 @@ handle_info(_Info, State) ->
 %%--------------------------------------------------------------------
 -spec(terminate(Reason :: (normal | shutdown | {shutdown, term()} | term()),
   State :: #state{}) -> term()).
-terminate(_Reason, _State = #state{socket = Socket}) ->
+terminate(_Reason, _State = #state{socket = Socket, queue = Queue}) ->
   lager:debug("Unbinding socket due to termination"),
   nfq_unbind_pf(Socket, inet),
   gen_socket:close(Socket),
+  gen_socket:close(Queue),
   ok.
 
 %%--------------------------------------------------------------------
