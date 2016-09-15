@@ -22,12 +22,10 @@
   handle_cast/2,
   handle_info/2,
   terminate/2,
-  update_vip_names/1,
   code_change/3]).
 
 -include_lib("gen_socket/include/gen_socket.hrl").
 -include_lib("gen_netlink/include/netlink.hrl").
--include_lib("telemetry/include/telemetry.hrl").
 -include("minuteman.hrl").
 
 -define(NFQNL_COPY_PACKET, 2).
@@ -114,8 +112,6 @@ init([]) ->
   ok = gen_socket:setsockopt(Socket, ?SOL_SOCKET, ?SO_RCVBUF, 57108864),
   ok = gen_socket:setsockopt(Socket, ?SOL_NETLINK, ?NETLINK_ADD_MEMBERSHIP, ?NFNLGRP_CONNTRACK_NEW),
   ok = gen_socket:setsockopt(Socket, ?SOL_NETLINK, ?NETLINK_ADD_MEMBERSHIP, ?NFNLGRP_CONNTRACK_UPDATE),
-  % using a lambda to avoid exporting this function since its not called internally
-  ok = telemetry:add_prepare_func(update_vip_names, fun update_vip_names/1),
   netlink:rcvbufsiz(Socket, ?RCVBUF_DEFAULT),
   ok = gen_socket:input_event(Socket, true),
   {ok, #state{socket = Socket}}.
@@ -135,9 +131,6 @@ init([]) ->
   {noreply, NewState :: #state{}, timeout() | hibernate} |
   {stop, Reason :: term(), Reply :: term(), NewState :: #state{}} |
   {stop, Reason :: term(), NewState :: #state{}}).
-handle_call({update_vip_names, M0}, _From, State) ->
-  M1 = M0#metrics{ time_to_histos = update_time_to_histos(State, M0#metrics.time_to_histos) },
-  {reply, M1, State};
 handle_call(_Request, _From, State) ->
   {reply, ok, State}.
 
@@ -239,10 +232,6 @@ code_change(_OldVsn, State, _Extra) ->
 %%% Internal functions
 %%%===================================================================
 
--spec(update_time_to_histos(State :: #state{}, M :: time_to_histos()) ->  time_to_histos()).
-update_time_to_histos(State, H) -> orddict:map(fun (K,V) -> update_time_to_histos_f(S,K,V) end, H).
-update_time_to_histos_f(S, K, V) -> V.
-
 socket(Family, Type, Protocol, Opts) ->
   case proplists:get_value(netns, Opts) of
     undefined ->
@@ -258,10 +247,6 @@ handle_conn(Vips, Backends, #ctnetlink{msg = {_Family, _, _, Props}}) ->
   {tuple_reply, Reply} = proplists:lookup(tuple_reply, Props),
   AddressesReply = fmt_net(Reply),
   maybe_mark_replied(Vips, Backends, ID, AddressesReply, Orig, Status).
-
--spec(update_vip_names(#metrics{}) -> #metrics{}).
-update_vip_names(M) ->
-  gen_server:call(?SERVER, {update_vip_names, M}).
 
 maybe_mark_replied(Vips, Backends, ID,
                    {Proto, DstIP, DstPort, _SrcIP, _SrcPort} = AddressesReply,

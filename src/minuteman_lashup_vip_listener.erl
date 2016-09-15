@@ -20,7 +20,10 @@
     handle_cast/2,
     handle_info/2,
     terminate/2,
+  	update_vip_names/1,
     code_change/3]).
+
+-include_lib("telemetry/include/telemetry.hrl").
 
 -define(SERVER, ?MODULE).
 -define(RPC_TIMEOUT, 1000).
@@ -98,6 +101,7 @@ start_link() ->
 init([]) ->
     MinIP = ip_to_integer(minuteman_config:min_named_ip()),
     MaxIP = ip_to_integer(minuteman_config:max_named_ip()),
+  	ok = telemetry:add_prepare_func(update_vip_names, fun update_vip_names/1),
     {ok, Ref} = lashup_kv_events_helper:start_link(ets:fun2ms(fun({?VIPS_KEY}) -> true end)),
     State = #state{ref = Ref, max_ip_num = MaxIP, min_ip_num = MinIP},
     lager:warning("State: ~p", [State]),
@@ -118,6 +122,9 @@ init([]) ->
     {noreply, NewState :: state(), timeout() | hibernate} |
     {stop, Reason :: term(), Reply :: term(), NewState :: state()} |
     {stop, Reason :: term(), NewState :: state()}).
+handle_call({update_vip_names, M0}, _From, State) ->
+  M1 = M0#metrics{ time_to_histos = update_time_to_histos(State, M0#metrics.time_to_histos) },
+  {reply, M1, State};
 handle_call(_Request, _From, State) ->
     {reply, ok, State}.
 
@@ -191,6 +198,23 @@ code_change(_OldVsn, State, _Extra) ->
 %%%===================================================================
 %%% Internal functions
 %%%===================================================================
+
+-spec(update_vip_names(#metrics{}) -> #metrics{}).
+update_vip_names(M) ->
+  gen_server:call(?SERVER, {update_vip_names, M}).
+
+-spec(update_time_to_histos(State :: #state{}, M :: time_to_histos()) ->  time_to_histos()).
+update_time_to_histos(S, H) -> orddict:map(fun (_K,V) -> update_t2h(S,V) end, H).
+
+update_t2h(S, {{Time, {name_tags, mm_connect_latency,
+							 #{vip := Vip} = M}},
+							 Hist}) ->
+  ITN = S#state.ip_to_name,
+  [{_, Name}] = ets:lookup(ITN, ip_to_integer(Vip)),
+	U = map:put(name, Name, M),
+  {{Time, {name_tags, mm_connect_latency, U, Hist}}};
+update_t2h(_S, V) -> V.
+
 
 handle_event(_Event = #{value := VIPs}, State) ->
     handle_value(VIPs, State).

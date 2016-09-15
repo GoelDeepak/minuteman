@@ -1,4 +1,4 @@
--module(minuteman_ct_latency_observer_SUITE).
+-module(minuteman_lashup_vip_listener_SUITE).
 -compile(export_all).
 
 -include_lib("common_test/include/ct.hrl").
@@ -14,12 +14,12 @@ all() ->
 test_init(_Config) -> ok.
 
 test_update_vip_names1(_Config) ->
-  #metrics{} = minuteman_ct_latency_observer:update_vip_names(#metrics{}),
+  #metrics{} = minuteman_lashup_vip_listener:update_vip_names(#metrics{}),
   ok.
 
 test_update_vip_names2(_Config) ->
   T = sets:from_list([1,2,3]),
-  #metrics{dirty_histos = T} = minuteman_ct_latency_observer:update_vip_names(#metrics{dirty_histos = T}),
+  #metrics{dirty_histos = T} = minuteman_lashup_vip_listener:update_vip_names(#metrics{dirty_histos = T}),
   ok.
 
 test_update_vip_names3(_Config) ->
@@ -28,7 +28,7 @@ test_update_vip_names3(_Config) ->
   C = sets:from_list([1,2,3]),
   D = sets:from_list([1,2,3,4]),
 	M = #metrics{time_to_histos = A, time_to_counters = B, dirty_histos = C,  dirty_counters = D},
-  M = minuteman_ct_latency_observer:update_vip_names(M),
+  M = minuteman_lashup_vip_listener:update_vip_names(M),
 	ok.
 
 init_per_testcase(_, Config) ->
