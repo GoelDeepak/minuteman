@@ -135,8 +135,9 @@ init([]) ->
   {noreply, NewState :: #state{}, timeout() | hibernate} |
   {stop, Reason :: term(), Reply :: term(), NewState :: #state{}} |
   {stop, Reason :: term(), NewState :: #state{}}).
-handle_call({update_vip_names, M}, _From, State) ->
-  {reply, M, State};
+handle_call({update_vip_names, M0}, _From, State) ->
+  M1 = M0#metrics{ time_to_histos = update_time_to_histos(State, M0#metrics.time_to_histos) },
+  {reply, M1, State};
 handle_call(_Request, _From, State) ->
   {reply, ok, State}.
 
@@ -237,6 +238,9 @@ code_change(_OldVsn, State, _Extra) ->
 %%%===================================================================
 %%% Internal functions
 %%%===================================================================
+
+-spec(update_time_to_histos(State :: #state{}, M :: time_to_histos()) ->  time_to_histos()).
+update_time_to_histos(_State, H) -> H.
 
 socket(Family, Type, Protocol, Opts) ->
   case proplists:get_value(netns, Opts) of

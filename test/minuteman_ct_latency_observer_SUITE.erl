@@ -8,6 +8,7 @@ all() ->
   [test_init
   ,test_update_vip_names1
   ,test_update_vip_names2
+	,test_update_vip_names3
   ].
 
 test_init(_Config) -> ok.
@@ -21,6 +22,14 @@ test_update_vip_names2(_Config) ->
   #metrics{dirty_histos = T} = minuteman_ct_latency_observer:update_vip_names(#metrics{dirty_histos = T}),
   ok.
 
+test_update_vip_names3(_Config) ->
+  A = orddict:from_list([{a,1},{b,2}]),
+  B = orddict:from_list([{a,1},{b,2},{c,3}]),
+  C = sets:from_list([1,2,3]),
+  D = sets:from_list([1,2,3,4]),
+	M = #metrics{time_to_histos = A, time_to_counters = B, dirty_histos = C,  dirty_counters = D},
+  M = minuteman_ct_latency_observer:update_vip_names(M),
+	ok.
 
 init_per_testcase(_, Config) ->
   {ok, _} = application:ensure_all_started(minuteman),
