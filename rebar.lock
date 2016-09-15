@@ -93,7 +93,7 @@
   0},
  {<<"telemetry">>,
   {git,"git://github.com/dcos/telemetry-net.git",
-       {ref,"b64c6cf644dada2f3b393bab0e5494337c332af8"}},
+       {ref,"05812e6c9eb427968388a69d82017ec3c8bcad1b"}},
   0},
  {<<"webmachine">>,
   {git,"git://github.com/webmachine/webmachine",
