@@ -240,7 +240,8 @@ code_change(_OldVsn, State, _Extra) ->
 %%%===================================================================
 
 -spec(update_time_to_histos(State :: #state{}, M :: time_to_histos()) ->  time_to_histos()).
-update_time_to_histos(_State, H) -> H.
+update_time_to_histos(State, H) -> orddict:map(fun (K,V) -> update_time_to_histos_f(S,K,V) end, H).
+update_time_to_histos_f(S, K, V) -> V.
 
 socket(Family, Type, Protocol, Opts) ->
   case proplists:get_value(netns, Opts) of
